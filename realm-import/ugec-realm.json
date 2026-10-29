@@ -1,0 +1,280 @@
+{
+  "realm": "ugec",
+  "displayName": "UGEC",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "maxFailureWaitSeconds": 900,
+  "passwordPolicy": "length(8) and upperCase(1) and lowerCase(1) and digits(1) and notUsername",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "defaultSignatureAlgorithm": "RS256",
+  "internationalizationEnabled": false,
+  "roles": {
+    "realm": [
+      {
+        "name": "ugec-admin",
+        "description": "UGEC application administrator"
+      },
+      {
+        "name": "ugec-user",
+        "description": "UGEC application user"
+      }
+    ],
+    "client": {
+      "ugec-costing-api": [
+        {
+          "name": "Admin",
+          "description": "Costing app: full access incl. master data"
+        },
+        {
+          "name": "Estimator",
+          "description": "Costing app: create / edit jobs and estimates"
+        },
+        {
+          "name": "Viewer",
+          "description": "Costing app: read-only"
+        }
+      ],
+      "ugec-wastereducer-api": [
+        {
+          "name": "Admin",
+          "description": "WasteReducer: System administrator: users, roles and all settings"
+        },
+        {
+          "name": "Manager",
+          "description": "WasteReducer: Production / plant manager: dashboards, master data, approvals"
+        },
+        {
+          "name": "Supervisor",
+          "description": "WasteReducer: Shift supervisor: live board, approvals, shift report"
+        },
+        {
+          "name": "Planner",
+          "description": "WasteReducer: Planner / PPIC: MOs, material issue, reconciliation"
+        },
+        {
+          "name": "Operator",
+          "description": "WasteReducer: Machine operator: run logger, parameter readings, scrap"
+        },
+        {
+          "name": "AssistantOperator",
+          "description": "WasteReducer: Assistant operator: scrap weighing, readings"
+        },
+        {
+          "name": "InkKitchen",
+          "description": "WasteReducer: Ink kitchen: ink and solvent issue / return"
+        },
+        {
+          "name": "QC",
+          "description": "WasteReducer: Quality control: readings and color approval"
+        },
+        {
+          "name": "Warehouse",
+          "description": "WasteReducer: Warehouse: substrate issue / return"
+        },
+        {
+          "name": "ProcessLogger",
+          "description": "WasteReducer: Process logger: takes timed parameter readings on the machines assigned per shift"
+        }
+      ]
+    }
+  },
+  "defaultRole": {
+    "name": "default-roles-ugec",
+    "composite": true,
+    "composites": {
+      "realm": [
+        "offline_access",
+        "uma_authorization",
+        "ugec-user"
+      ],
+      "client": {
+        "account": [
+          "manage-account",
+          "view-profile"
+        ]
+      }
+    }
+  },
+  "groups": [
+    {
+      "name": "Administrators",
+      "path": "/Administrators",
+      "realmRoles": [
+        "ugec-admin",
+        "ugec-user"
+      ]
+    },
+    {
+      "name": "Users",
+      "path": "/Users",
+      "realmRoles": [
+        "ugec-user"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "${INITIAL_USER_EMAIL}",
+      "email": "${INITIAL_USER_EMAIL}",
+      "firstName": "${INITIAL_USER_FIRSTNAME}",
+      "lastName": "${INITIAL_USER_LASTNAME}",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${INITIAL_USER_PASSWORD}",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "default-roles-ugec",
+        "ugec-admin",
+        "ugec-user"
+      ],
+      "clientRoles": {
+        "realm-management": [
+          "realm-admin"
+        ],
+        "account": [
+          "manage-account",
+          "view-profile"
+        ],
+        "ugec-costing-api": [
+          "Admin"
+        ],
+        "ugec-wastereducer-api": [
+          "Admin"
+        ]
+      },
+      "groups": [
+        "/Administrators"
+      ]
+    },
+    {
+      "username": "service-account-ugec-wastereducer-api",
+      "enabled": true,
+      "serviceAccountClientId": "ugec-wastereducer-api",
+      "clientRoles": {
+        "realm-management": [
+          "view-users",
+          "query-users",
+          "view-clients",
+          "query-clients"
+        ]
+      }
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "ugec-web",
+      "name": "UGEC Web App (SPA)",
+      "description": "Public client for React/Vite/vanilla JS front-ends (Auth Code + PKCE)",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "http://localhost:5173",
+      "baseUrl": "/",
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "http://localhost:3000/*",
+        "http://localhost:5062/swagger/oauth2-redirect.html",
+        "https://localhost:7273/swagger/oauth2-redirect.html",
+        "https://localhost:56848/*",
+        "https://localhost:7073/*",
+        "http://localhost:5230/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*##http://localhost:3000/*##https://localhost:56848/*##https://localhost:7073/*##http://localhost:5230/*"
+      },
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "ugec-costing-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "ugec-costing-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "ugec-wastereducer-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "ugec-wastereducer-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "ugec-api",
+      "name": "UGEC Backend API",
+      "description": "Confidential client for backend services (client credentials / token validation)",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": false,
+      "protocol": "openid-connect",
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "ugec-costing-api",
+      "name": "UGEC Costing API",
+      "description": "Resource server for the Costing app. Holds the app roles (Admin, Estimator, Viewer); tokens carry it as audience. No login flows.",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "ugec-wastereducer-api",
+      "name": "UGEC WasteReducer API",
+      "description": "Resource server for WasteReducer. Holds the app roles; tokens carry it as audience. Service account reads users; direct grant checks approver passwords.",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": false,
+      "protocol": "openid-connect",
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "fullScopeAllowed": true
+    }
+  ]
+}

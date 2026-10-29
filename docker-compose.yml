@@ -1,0 +1,101 @@
+name: ugec-keycloak
+
+services:
+  mysql:
+    image: mysql:${MYSQL_VERSION}
+    container_name: ugec-keycloak-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: Asia/Manila
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - '${MYSQL_PORT}:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      # 'ping' only checks the server is up (no password needed, so special characters can't break it)
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '--silent']
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 180s # first-time init on Docker Desktop for Windows can be slow
+    networks: [keycloak-net]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+    container_name: ugec-keycloak
+    restart: unless-stopped
+    command: ['start-dev', '--import-realm']
+    environment:
+      # Database
+      KC_DB: mysql
+      KC_DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?characterEncoding=UTF-8
+      KC_DB_USERNAME: ${MYSQL_USER}
+      KC_DB_PASSWORD: ${MYSQL_PASSWORD}
+      # Temporary bootstrap admin (first start only)
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      # HTTP / hostname (local dev)
+      KC_HTTP_ENABLED: 'true'
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT}
+      KC_HEALTH_ENABLED: 'true'
+      KC_METRICS_ENABLED: 'true'
+      KC_LOG_LEVEL: info
+      TZ: Asia/Manila
+      # Values substituted into realm-import/ugec-realm.json
+      INITIAL_USER_EMAIL: ${INITIAL_USER_EMAIL}
+      INITIAL_USER_FIRSTNAME: ${INITIAL_USER_FIRSTNAME}
+      INITIAL_USER_LASTNAME: ${INITIAL_USER_LASTNAME}
+      INITIAL_USER_PASSWORD: ${INITIAL_USER_PASSWORD}
+    ports:
+      - '${KEYCLOAK_PORT}:8080'
+    volumes:
+      - ./realm-import:/opt/keycloak/data/import:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      # The image has no curl, so use bash's /dev/tcp against the management port
+      test:
+        [
+          'CMD-SHELL',
+          "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    networks: [keycloak-net]
+
+  # One-shot job: creates mamondala@apobatangas.com as a permanent admin of the master realm
+  keycloak-init:
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+    container_name: ugec-keycloak-init
+    restart: 'no'
+    entrypoint: ['/bin/bash', '/opt/keycloak/scripts/init-master-admin.sh']
+    environment:
+      KC_SERVER_URL: http://keycloak:8080
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}
+      INITIAL_USER_EMAIL: ${INITIAL_USER_EMAIL}
+      INITIAL_USER_FIRSTNAME: ${INITIAL_USER_FIRSTNAME}
+      INITIAL_USER_LASTNAME: ${INITIAL_USER_LASTNAME}
+      INITIAL_USER_PASSWORD: ${INITIAL_USER_PASSWORD}
+    volumes:
+      - ./scripts:/opt/keycloak/scripts:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks: [keycloak-net]
+
+volumes:
+  mysql_data:
+
+networks:
+  keycloak-net:
